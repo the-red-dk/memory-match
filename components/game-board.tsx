@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { MemoryCard } from "@/components/memory-card"
 import confetti from "canvas-confetti"
+import { WinModal } from "@/components/win-modal"
 
 interface GameBoardProps {
   level: number
@@ -191,10 +192,10 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
 
       {showWinModal && (
         <WinModal
-          score={matchedPairs}
-          moves={flippedCards.length}
-          playerName={playerName} // Pass the player's name to the WinModal
-          onClose={() => setShowWinModal(false)}
+          score={matchedPairs} // Pass the matched pairs as the score
+          moves={flippedCards.length} // Pass the number of moves
+          playerName={playerName} // Pass the player's name
+          onClose={() => setShowWinModal(false)} // Close the modal when triggered
         />
       )}
     </div>
