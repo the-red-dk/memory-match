@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation" // Import useRouter for navigation
 import { MemoryCard } from "@/components/memory-card"
 import confetti from "canvas-confetti"
-import { WinModal } from "@/components/win-modal"
 
 interface GameBoardProps {
   level: number
@@ -41,7 +40,6 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
   const [matchedPairs, setMatchedPairs] = useState<number>(0)
   const [isChecking, setIsChecking] = useState<boolean>(false)
   const [levelCompleteMessage, setLevelCompleteMessage] = useState<string | null>(null)
-  const [showWinModal, setShowWinModal] = useState<boolean>(false)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
 
@@ -226,16 +224,6 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
           <MemoryCard key={card.id} card={card} onClick={() => handleCardClick(card.id)} />
         ))}
       </div>
-
-      {showWinModal && (
-        <WinModal
-          score={matchedPairs} // Pass the matched pairs as the score
-          moves={flippedCards.length} // Pass the number of moves
-          time={endTime && startTime ? Math.floor((endTime - startTime) / 1000) : 0} // Calculate time in seconds
-          playerName={playerName} // Pass the player's name
-          onClose={() => setShowWinModal(false)} // Close the modal when triggered
-        />
-      )}
     </div>
   )
 }
