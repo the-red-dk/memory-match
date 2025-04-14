@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation" // Import useRouter for navigation
 import { MemoryCard } from "@/components/memory-card"
 import confetti from "canvas-confetti"
 import { WinModal } from "@/components/win-modal"
@@ -32,6 +33,7 @@ interface CardType {
 }
 
 export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGameWin, gameCompleted }: GameBoardProps) {
+  const router = useRouter() // Use router for navigation
   const [playerName, setPlayerName] = useState<string>("")
   const [nameEntered, setNameEntered] = useState<boolean>(false)
   const [cards, setCards] = useState<CardType[]>([])
@@ -77,15 +79,14 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
           origin: { y: 0.6 },
         })
         setEndTime(Date.now()) // Set the end time when the game ends
-        updateLeaderboard() // Automatically update the leaderboard
-        setShowWinModal(true) // Show the WinModal at the end
+        updateLeaderboardAndRedirect() // Automatically update the leaderboard and redirect
         onGameWin()
       }
     }
   }, [matchedPairs, pairs, level, onLevelComplete, onGameWin, gameCompleted])
 
-  // Update leaderboard
-  const updateLeaderboard = async () => {
+  // Update leaderboard and redirect to leaderboard page
+  const updateLeaderboardAndRedirect = async () => {
     if (!startTime || !endTime) return
 
     const timeTaken = Math.floor((endTime - startTime) / 1000)
@@ -105,7 +106,9 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
         }),
       })
 
-      if (!response.ok) {
+      if (response.ok) {
+        router.push("/leaderboard") // Redirect to leaderboard page
+      } else {
         console.error("Failed to update leaderboard")
       }
     } catch (error) {
