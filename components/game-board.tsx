@@ -38,6 +38,7 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
   const [matchedPairs, setMatchedPairs] = useState<number>(0)
   const [isChecking, setIsChecking] = useState<boolean>(false)
   const [levelCompleteMessage, setLevelCompleteMessage] = useState<string | null>(null)
+  const [showWinModal, setShowWinModal] = useState<boolean>(false)
 
   const { rows, cols, pairs } = levelGrids[level as keyof typeof levelGrids]
 
@@ -52,7 +53,6 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
   // Check for level completion
   useEffect(() => {
     if (matchedPairs === pairs && matchedPairs > 0 && !gameCompleted) {
-      // Small confetti for level completion
       confetti({
         particleCount: 50,
         spread: 50,
@@ -60,23 +60,19 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
       })
 
       if (level < 5) {
-        // Show level complete message
         setLevelCompleteMessage(`Level ${level} Complete! Advancing to Level ${level + 1}...`)
-
-        // Advance to next level after a delay
         const timer = setTimeout(() => {
           setLevelCompleteMessage(null)
           onLevelComplete()
         }, 2000)
-
         return () => clearTimeout(timer)
       } else {
-        // Final level completed - game win
         confetti({
           particleCount: 200,
           spread: 70,
           origin: { y: 0.6 },
         })
+        setShowWinModal(true) // Show the WinModal at the end
         onGameWin()
       }
     }
@@ -84,23 +80,17 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
 
   // Initialize cards for the game
   const initializeCards = () => {
-    // Create pairs of cards
     let cardValues = []
     for (let i = 1; i <= pairs; i++) {
-      cardValues.push(i, i) // Add each value twice for pairs
+      cardValues.push(i, i)
     }
-
-    // Shuffle the cards
     cardValues = shuffleArray(cardValues)
-
-    // Create card objects
     const newCards = cardValues.map((value, index) => ({
       id: index,
       value,
       flipped: false,
       matched: false,
     }))
-
     setCards(newCards)
     setFlippedCards([])
     setMatchedPairs(0)
@@ -118,39 +108,31 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
 
   // Handle card click
   const handleCardClick = (id: number) => {
-    // Ignore clicks if already checking a pair or if card is already flipped/matched
     if (isChecking || flippedCards.length >= 2 || levelCompleteMessage) return
 
     const clickedCard = cards.find((card) => card.id === id)
     if (!clickedCard || clickedCard.flipped || clickedCard.matched) return
 
-    // Flip the card
     const updatedCards = cards.map((card) => (card.id === id ? { ...card, flipped: true } : card))
-
     setCards(updatedCards)
 
-    // Add to flipped cards
     const newFlippedCards = [...flippedCards, id]
     setFlippedCards(newFlippedCards)
 
-    // If two cards are flipped, check for a match
     if (newFlippedCards.length === 2) {
-      onMove() // Count this as a move
-
+      onMove()
       const [firstId, secondId] = newFlippedCards
       const firstCard = updatedCards.find((card) => card.id === firstId)
       const secondCard = updatedCards.find((card) => card.id === secondId)
 
       if (firstCard && secondCard && firstCard.value === secondCard.value) {
-        // Match found
         setCards(
           updatedCards.map((card) => (card.id === firstId || card.id === secondId ? { ...card, matched: true } : card)),
         )
         setMatchedPairs(matchedPairs + 1)
         setFlippedCards([])
-        onPairMatched() // Increment score
+        onPairMatched()
       } else {
-        // No match, flip cards back after delay
         setIsChecking(true)
         setTimeout(() => {
           setCards(updatedCards.map((card) => (newFlippedCards.includes(card.id) ? { ...card, flipped: false } : card)))
@@ -184,9 +166,6 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
     )
   }
 
-  // Calculate grid template based on level
-  const gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`
-
   return (
     <div className="w-full flex flex-col items-center justify-center">
       {levelCompleteMessage && (
@@ -200,15 +179,24 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
         style={{
           gridTemplateRows: `repeat(${rows}, 1fr)`,
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          width: "100%", // Ensure the grid takes up the full width
-          maxWidth: "800px", // Optional: Limit the maximum width
-          height: "auto", // Adjust height dynamically
+          width: "100%",
+          maxWidth: "800px",
+          height: "auto",
         }}
       >
         {cards.map((card) => (
           <MemoryCard key={card.id} card={card} onClick={() => handleCardClick(card.id)} />
         ))}
       </div>
+
+      {showWinModal && (
+        <WinModal
+          score={matchedPairs}
+          moves={flippedCards.length}
+          playerName={playerName} // Pass the player's name to the WinModal
+          onClose={() => setShowWinModal(false)}
+        />
+      )}
     </div>
   )
 }
