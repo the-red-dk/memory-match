@@ -1,4 +1,4 @@
-"use client"
+"use client" // Explicitly mark this file as a client component
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -124,7 +124,6 @@ export default function GamePage() {
         </div>
 
         <div className="py-6">
-          
           <GameBoard
             level={currentLevel}
             onMove={handleMove}
