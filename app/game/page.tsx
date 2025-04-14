@@ -124,6 +124,7 @@ export default function GamePage() {
         </div>
 
         <div className="py-6">
+          
           <GameBoard
             level={currentLevel}
             onMove={handleMove}
