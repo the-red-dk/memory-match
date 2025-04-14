@@ -11,6 +11,7 @@ import { WinModal } from "@/components/win-modal"
 
 export default function GamePage() {
   const router = useRouter()
+  const [playerName, setPlayerName] = useState("") // Add playerName state
   const [currentLevel, setCurrentLevel] = useState(1) // Default to Level 1
   const [score, setScore] = useState(0)
   const [moves, setMoves] = useState(0)
@@ -18,7 +19,6 @@ export default function GamePage() {
   const [endTime, setEndTime] = useState<number | null>(null)
   const [showWinModal, setShowWinModal] = useState(false)
   const [gameCompleted, setGameCompleted] = useState(false)
-
   // Start the game automatically when the component mounts
   useEffect(() => {
     startGame()
@@ -31,6 +31,21 @@ export default function GamePage() {
       const level = parseInt(levelParam, 10)
       if (level >= 1 && level <= 5) {
         setCurrentLevel(level) // Set the level based on the query parameter
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("playerName")
+    if (storedName) {
+      setPlayerName(storedName) // Retrieve the player's name from localStorage
+    } else {
+      const name = prompt("Enter your name:") // Ask for the name at the beginning
+      if (name) {
+        setPlayerName(name)
+        localStorage.setItem("playerName", name) // Save the name in localStorage
+      } else {
+        router.push("/") // Redirect to home if no name is provided
       }
     }
   }, [])
@@ -70,7 +85,7 @@ export default function GamePage() {
     setShowWinModal(true)
   }
 
-  const handleSubmitScore = async (nickname: string) => {
+  const handleSubmitScore = async () => {
     if (!startTime || !endTime) return
 
     const timeTaken = Math.floor((endTime - startTime) / 1000)
@@ -82,7 +97,7 @@ export default function GamePage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          nickname,
+          nickname: playerName, // Use the player's name from state
           score,
           moves,
           time: timeTaken,
@@ -140,6 +155,7 @@ export default function GamePage() {
           score={score}
           moves={moves}
           time={endTime && startTime ? Math.floor((endTime - startTime) / 1000) : 0}
+          playerName={playerName} // Pass the player's name to the WinModal
           onSubmit={handleSubmitScore}
           onClose={() => setShowWinModal(false)}
         />

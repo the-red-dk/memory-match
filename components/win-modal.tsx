@@ -11,26 +11,18 @@ interface WinModalProps {
   score: number
   moves: number
   time: number
-  onSubmit: (nickname: string) => void
+  playerName: string // Add playerName as a prop
+  onSubmit: () => void
   onClose: () => void
 }
 
-export function WinModal({ score, moves, time, onSubmit, onClose }: WinModalProps) {
-  const [nickname, setNickname] = useState("")
+export function WinModal({ score, moves, time, playerName, onSubmit, onClose }: WinModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = () => {
-    if (!nickname.trim()) return
-
+  const handleSubmit = async () => {
     setIsSubmitting(true)
-    onSubmit(nickname.trim())
-  }
-
-  // Format time from seconds to MM:SS
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
+    await onSubmit()
+    setIsSubmitting(false)
   }
 
   return (
@@ -39,7 +31,7 @@ export function WinModal({ score, moves, time, onSubmit, onClose }: WinModalProp
         <DialogHeader>
           <DialogTitle className="text-center flex flex-col items-center gap-2">
             <Trophy className="h-12 w-12 text-yellow-500" />
-            <span className="text-2xl">Congratulations!</span>
+            <span className="text-2xl">Congratulations, {playerName}!</span> {/* Use the player's name */}
           </DialogTitle>
         </DialogHeader>
 
@@ -55,32 +47,20 @@ export function WinModal({ score, moves, time, onSubmit, onClose }: WinModalProp
             </div>
             <div className="text-center">
               <p className="text-sm text-gray-500">Time</p>
-              <p className="text-xl font-bold text-blue-700">{formatTime(time)}</p>
+              <p className="text-xl font-bold text-blue-700">{time}s</p>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="nickname">Enter your nickname for the leaderboard:</Label>
-            <Input
-              id="nickname"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="Your nickname"
-              maxLength={15}
-              className="border-blue-200"
-            />
-          </div>
+          <DialogFooter>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              {isSubmitting ? "Submitting..." : "Submit Score"}
+            </Button>
+          </DialogFooter>
         </div>
-
-        <DialogFooter>
-          <Button
-            onClick={handleSubmit}
-            disabled={!nickname.trim() || isSubmitting}
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            {isSubmitting ? "Submitting..." : "Submit Score"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
