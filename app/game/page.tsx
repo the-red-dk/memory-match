@@ -19,21 +19,6 @@ export default function GamePage() {
   const [endTime, setEndTime] = useState<number | null>(null)
   const [showWinModal, setShowWinModal] = useState(false)
   const [gameCompleted, setGameCompleted] = useState(false)
-  // Start the game automatically when the component mounts
-  useEffect(() => {
-    startGame()
-  }, [])
-
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search)
-    const levelParam = queryParams.get("level")
-    if (levelParam) {
-      const level = parseInt(levelParam, 10)
-      if (level >= 1 && level <= 5) {
-        setCurrentLevel(level) // Set the level based on the query parameter
-      }
-    }
-  }, [])
 
   useEffect(() => {
     const storedName = localStorage.getItem("playerName")
@@ -78,41 +63,38 @@ export default function GamePage() {
     }
   }
 
-  const handleGameWin = () => {
+  const handleGameWin = async () => {
     const endTimeValue = Date.now()
     setEndTime(endTimeValue)
     setGameCompleted(true)
     setShowWinModal(true)
-  }
 
-  const handleSubmitScore = async () => {
-    if (!startTime || !endTime) return
+    // Automatically update the leaderboard
+    if (startTime) {
+      const timeTaken = Math.floor((endTimeValue - startTime) / 1000)
 
-    const timeTaken = Math.floor((endTime - startTime) / 1000)
+      try {
+        const response = await fetch("/api/scores", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nickname: playerName, // Use the player's name from state
+            score,
+            moves,
+            time: timeTaken,
+            level: currentLevel,
+            timestamp: new Date().toISOString(),
+          }),
+        })
 
-    try {
-      const response = await fetch("/api/scores", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nickname: playerName, // Use the player's name from state
-          score,
-          moves,
-          time: timeTaken,
-          level: currentLevel,
-          timestamp: new Date().toISOString(),
-        }),
-      })
-
-      if (response.ok) {
-        router.push("/leaderboard")
-      } else {
-        console.error("Failed to submit score")
+        if (!response.ok) {
+          console.error("Failed to update leaderboard")
+        }
+      } catch (error) {
+        console.error("Error updating leaderboard:", error)
       }
-    } catch (error) {
-      console.error("Error submitting score:", error)
     }
   }
 
@@ -156,7 +138,6 @@ export default function GamePage() {
           moves={moves}
           time={endTime && startTime ? Math.floor((endTime - startTime) / 1000) : 0}
           playerName={playerName} // Pass the player's name to the WinModal
-          onSubmit={handleSubmitScore}
           onClose={() => setShowWinModal(false)}
         />
       )}

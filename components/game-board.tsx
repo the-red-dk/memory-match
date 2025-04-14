@@ -40,6 +40,8 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
   const [isChecking, setIsChecking] = useState<boolean>(false)
   const [levelCompleteMessage, setLevelCompleteMessage] = useState<string | null>(null)
   const [showWinModal, setShowWinModal] = useState<boolean>(false)
+  const [startTime, setStartTime] = useState<number | null>(null)
+  const [endTime, setEndTime] = useState<number | null>(null)
 
   const { rows, cols, pairs } = levelGrids[level as keyof typeof levelGrids]
 
@@ -48,6 +50,7 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
     if (nameEntered) {
       initializeCards()
       setLevelCompleteMessage(null)
+      setStartTime(Date.now()) // Set the start time when the game begins
     }
   }, [level, nameEntered])
 
@@ -73,11 +76,42 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
           spread: 70,
           origin: { y: 0.6 },
         })
+        setEndTime(Date.now()) // Set the end time when the game ends
+        updateLeaderboard() // Automatically update the leaderboard
         setShowWinModal(true) // Show the WinModal at the end
         onGameWin()
       }
     }
   }, [matchedPairs, pairs, level, onLevelComplete, onGameWin, gameCompleted])
+
+  // Update leaderboard
+  const updateLeaderboard = async () => {
+    if (!startTime || !endTime) return
+
+    const timeTaken = Math.floor((endTime - startTime) / 1000)
+
+    try {
+      const response = await fetch("/api/scores", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nickname: playerName,
+          score: matchedPairs,
+          moves: flippedCards.length,
+          time: timeTaken,
+          timestamp: new Date().toISOString(),
+        }),
+      })
+
+      if (!response.ok) {
+        console.error("Failed to update leaderboard")
+      }
+    } catch (error) {
+      console.error("Error updating leaderboard:", error)
+    }
+  }
 
   // Initialize cards for the game
   const initializeCards = () => {
@@ -194,6 +228,7 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
         <WinModal
           score={matchedPairs} // Pass the matched pairs as the score
           moves={flippedCards.length} // Pass the number of moves
+          time={endTime && startTime ? Math.floor((endTime - startTime) / 1000) : 0} // Calculate time in seconds
           playerName={playerName} // Pass the player's name
           onClose={() => setShowWinModal(false)} // Close the modal when triggered
         />
