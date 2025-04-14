@@ -1,7 +1,7 @@
-"use client" // Explicitly mark this file as a client component
+"use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { CSELogo } from "@/components/cse-logo"
@@ -11,8 +11,6 @@ import { WinModal } from "@/components/win-modal"
 
 export default function GamePage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const levelParam = searchParams.get("level") // Get the level from the query parameter
   const [currentLevel, setCurrentLevel] = useState(1) // Default to Level 1
   const [score, setScore] = useState(0)
   const [moves, setMoves] = useState(0)
@@ -27,13 +25,15 @@ export default function GamePage() {
   }, [])
 
   useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search)
+    const levelParam = queryParams.get("level")
     if (levelParam) {
       const level = parseInt(levelParam, 10)
       if (level >= 1 && level <= 5) {
         setCurrentLevel(level) // Set the level based on the query parameter
       }
     }
-  }, [levelParam])
+  }, [])
 
   const startGame = () => {
     setCurrentLevel(1)
@@ -54,7 +54,7 @@ export default function GamePage() {
   }
 
   const handleLevelComplete = () => {
-    if (currentLevel < 5) { // Changed from 6 to 5
+    if (currentLevel < 5) {
       // Advance to the next level
       setCurrentLevel(currentLevel + 1)
     } else {
