@@ -16,10 +16,6 @@ interface GameBoardProps {
 
 // Define grid dimensions for each level
 const levelGrids = {
-  1: { rows: 2, cols: 4, pairs: 4 }, // Level 1: 8 cards (4 pairs)
-  2: { rows: 3, cols: 4, pairs: 6 }, // Level 2: 12 cards (6 pairs)
-  3: { rows: 4, cols: 4, pairs: 8 }, // Level 3: 16 cards (8 pairs)
-  4: { rows: 4, cols: 5, pairs: 10 }, // Level 4: 20 cards (10 pairs)
   5: { rows: 4, cols: 6, pairs: 12 }, // Level 5: 24 cards (12 pairs)
 }
 
@@ -42,6 +38,7 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
   const [levelCompleteMessage, setLevelCompleteMessage] = useState<string | null>(null)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
+  const [elapsedTime, setElapsedTime] = useState<number>(0) // Timer state
 
   const { rows, cols, pairs } = levelGrids[level as keyof typeof levelGrids]
 
@@ -51,8 +48,20 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
       initializeCards()
       setLevelCompleteMessage(null)
       setStartTime(Date.now()) // Set the start time when the game begins
+      setElapsedTime(0) // Reset the timer
     }
   }, [level, nameEntered])
+
+  // Timer logic: Update elapsed time every second
+  useEffect(() => {
+    if (startTime && !gameCompleted) {
+      const timer = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000))
+      }, 1000)
+
+      return () => clearInterval(timer) // Cleanup timer on unmount
+    }
+  }, [startTime, gameCompleted])
 
   // Check for level completion
   useEffect(() => {
@@ -63,25 +72,16 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
         origin: { y: 0.6 },
       })
 
-      if (level < 5) {
-        setLevelCompleteMessage(`Level ${level} Complete! Advancing to Level ${level + 1}...`)
-        const timer = setTimeout(() => {
-          setLevelCompleteMessage(null)
-          onLevelComplete()
-        }, 2000)
-        return () => clearTimeout(timer)
-      } else {
-        confetti({
-          particleCount: 200,
-          spread: 70,
-          origin: { y: 0.6 },
-        })
-        setEndTime(Date.now()) // Set the end time when the game ends
-        updateLeaderboardAndRedirect() // Automatically update the leaderboard and redirect
-        onGameWin()
-      }
+      confetti({
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 },
+      })
+      setEndTime(Date.now()) // Set the end time when the game ends
+      updateLeaderboardAndRedirect() // Automatically update the leaderboard and redirect
+      onGameWin()
     }
-  }, [matchedPairs, pairs, level, onLevelComplete, onGameWin, gameCompleted])
+  }, [matchedPairs, pairs, onGameWin, gameCompleted])
 
   // Update leaderboard and redirect to leaderboard page
   const updateLeaderboardAndRedirect = async () => {
@@ -89,25 +89,30 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
 
     const timeTaken = Math.floor((endTime - startTime) / 1000)
 
+    const payload = {
+      nickname: playerName,
+      score: matchedPairs,
+      moves: flippedCards.length,
+      time: timeTaken,
+      timestamp: new Date().toISOString(),
+    }
+
+    console.log("Submitting payload to leaderboard:", payload)
+
     try {
       const response = await fetch("/api/scores", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          nickname: playerName,
-          score: matchedPairs,
-          moves: flippedCards.length,
-          time: timeTaken,
-          timestamp: new Date().toISOString(),
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
+        console.log("Score successfully updated in leaderboard")
         router.push("/leaderboard") // Redirect to leaderboard page
       } else {
-        console.error("Failed to update leaderboard")
+        console.error("Failed to update leaderboard:", await response.text())
       }
     } catch (error) {
       console.error("Error updating leaderboard:", error)
@@ -192,11 +197,13 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
           className="border border-gray-300 rounded-md p-2 w-64 mb-4"
         />
         <button
-          onClick={() => setNameEntered(true)}
+          onClick={() => {
+            setNameEntered(true)
+          }}
           disabled={!playerName.trim()}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
         >
-          Start Game
+          Start Level 5
         </button>
       </div>
     )
@@ -204,11 +211,9 @@ export function GameBoard({ level, onMove, onPairMatched, onLevelComplete, onGam
 
   return (
     <div className="w-full flex flex-col items-center justify-center">
-      {levelCompleteMessage && (
-        <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-xl font-bold text-center animate-pulse">
-          {levelCompleteMessage}
-        </div>
-      )}
+      <div className="mb-4 text-xl font-bold text-gray-700">
+        Timer: {elapsedTime}s
+      </div>
 
       <div
         className="grid gap-4"
